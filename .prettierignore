@@ -1,0 +1,43 @@
+# Dependency folders
+node_modules/
+**/node_modules/
+
+# Build outputs
+.next/
+**/.next/
+out/
+**/out/
+dist/
+**/dist/
+build/
+**/build/
+coverage/
+**/coverage/
+.nyc_output/
+**/.nyc_output/
+
+# Tooling and cache directories
+.turbo/
+**/.turbo/
+.cache/
+**/.cache/
+.eslintcache
+**/.eslintcache
+.stylelintcache
+**/.stylelintcache
+**/next-env.d.ts
+
+# Logs and temporary files
+logs/
+**/logs/
+*.log
+*.log.*
+tmp/
+**/tmp/
+temp/
+**/temp/
+
+# Generated or environment-specific files
+pnpm-lock.yaml
+*.tsbuildinfo
+public/

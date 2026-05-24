@@ -1,0 +1,36 @@
+{% extends "base.njk" %}
+
+{% block content %}
+  <h1 style="margin-top: 0; margin-bottom: 20px; font-size: 24px; font-weight: 700; color: {{ theme.text_heading }};">
+    Welcome to {{ app.name }}, {{ user.name }}!
+  </h1>
+  
+  <p style="margin-top: 0; margin-bottom: 24px;">
+    We are thrilled to have you on board. You're joining a community of people who are doing things the right way. Let's get your account set up so you can hit the ground running.
+  </p>
+
+  <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-bottom: 30px;">
+    <tr>
+      <td align="center">
+        <table border="0" cellpadding="0" cellspacing="0">
+          <tr>
+            <td align="center" style="border-radius: 6px; background-color: {{ theme.primary }};">
+              <a href="{{ action_url }}" target="_blank" style="display: inline-block; padding: 14px 30px; font-family: Helvetica, Arial, sans-serif; font-size: 16px; font-weight: bold; color: {{ theme.button_text }}; text-decoration: none; border-radius: 6px; border: 1px solid {{ theme.primary }};">
+                Get Started Now
+              </a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <p style="margin-top: 0; margin-bottom: 10px;">
+    If you have any questions, just reply to this email. We're always here to help.
+  </p>
+  
+  <p style="margin-top: 0; margin-bottom: 0;">
+    Best regards,<br>
+    <strong>The {{ app.name }} Team</strong>
+  </p>
+{% endblock %}

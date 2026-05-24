@@ -1,0 +1,8 @@
+#!/bin/sh
+# Check if the lockfile changed in the last merge
+if git diff-tree -r --name-only --no-commit-id ORIG_HEAD HEAD | grep -q 'pnpm-lock.yaml'; then
+  echo "🚀 Lockfile changed. Syncing dependencies..."
+  pnpm install
+else
+  echo "✅ No dependency changes detected."
+fi

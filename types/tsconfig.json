@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "rootDir": "./src",
+    "outDir": "dist",
+    "esModuleInterop": true,
+    "declaration": true,
+    "module": "CommonJS"
+    // "moduleResolution": "bundler"
+  },
+  "include": ["src/**/*"]
+}

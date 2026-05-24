@@ -1,0 +1,83 @@
+services:
+  # BACKEND
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    env_file: apps/api/.env
+    ports:
+      - '${PORT:-3001}:${PORT:-3001}'
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:${PORT:-3001}/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # FRONTEND
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    env_file: apps/web/.env
+    ports:
+      - '${WEB_PORT:-3000}:${WEB_PORT:-3000}'
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # DATABASE
+  db:
+    image: postgres:16-alpine
+    restart: always
+    env_file: apps/api/.env
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_DB: ${DB_NAME:-boilerplate}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - '${DB_PORT:-5432}:${DB_PORT:-5432}'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'pg_isready',
+          '-U',
+          '${DB_USERNAME:-postgres}',
+          '-d',
+          '${DB_NAME:-boilerplate}',
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # CACHE
+  redis:
+    image: redis:7-alpine
+    restart: always
+    env_file: apps/api/.env
+    command: redis-server --appendonly yes
+    ports:
+      - '${REDIS_PORT:-6379}:${REDIS_PORT:-6379}'
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:

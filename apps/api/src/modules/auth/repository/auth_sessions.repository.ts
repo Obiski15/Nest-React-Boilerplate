@@ -15,7 +15,7 @@ export class AuthSessionsRepository extends BaseRepository<AuthSessionsEntity> {
     const repo = this.getRepo(manager);
 
     return await repo.find({
-      where: { user: { id: user_id } },
+      where: { user_id },
       order: { createdAt: 'DESC' },
     });
   }
@@ -27,10 +27,9 @@ export class AuthSessionsRepository extends BaseRepository<AuthSessionsEntity> {
   ) {
     const repo = this.getRepo(manager);
 
-    // Setup query context
     const queryBuilder = repo
       .createQueryBuilder('session')
-      .where('session.user.id = :user_id', { user_id })
+      .where('session.user_id = :user_id', { user_id })
       .orderBy('session.createdAt', filters.sortOrder);
 
     if (filters.createdAfter) {
@@ -42,49 +41,64 @@ export class AuthSessionsRepository extends BaseRepository<AuthSessionsEntity> {
     return await this.paginate(queryBuilder, filters);
   }
 
-  async createSession(
+  async upsertSession(
     refresh_token: string,
     user_id: string,
+    device_id: string,
+    metadata?: Record<string, any>,
     manager?: EntityManager,
   ): Promise<AuthSessionsEntity> {
     const repo = this.getRepo(manager);
 
-    const session = repo.create({
-      refresh_token,
-      user: { id: user_id },
-    });
+    await repo.upsert(
+      {
+        refresh_token,
+        user_id,
+        device_id,
+        metadata,
+      },
+      ['user_id', 'device_id'],
+    );
 
-    return await repo.save(session);
+    return await repo.findOneOrFail({
+      where: { user_id, device_id },
+    });
   }
 
   async findSession(
     refresh_token: string,
     user_id: string,
+    device_id: string,
     manager?: EntityManager,
   ): Promise<AuthSessionsEntity | null> {
-    return await this.findByTokenAndUser(refresh_token, user_id, manager);
+    const repo = this.getRepo(manager);
+
+    return await repo.findOne({
+      where: { refresh_token, user_id, device_id },
+    });
   }
 
   async updateSession(
     old_refresh_token: string,
     new_refresh_token: string,
     user_id: string,
+    device_id: string,
     manager?: EntityManager,
   ): Promise<AuthSessionsEntity | null> {
     const repo = this.getRepo(manager);
 
-    const session = await this.findByTokenAndUser(
-      old_refresh_token,
-      user_id,
-      manager,
+    const updateResult = await repo.update(
+      { refresh_token: old_refresh_token, user_id, device_id },
+      { refresh_token: new_refresh_token },
     );
 
-    if (!session) {
+    if (updateResult.affected === 0) {
       return null;
     }
 
-    session.refresh_token = new_refresh_token;
-    return await repo.save(session);
+    return await repo.findOne({
+      where: { refresh_token: new_refresh_token },
+    });
   }
 
   async deleteSession(
@@ -96,7 +110,7 @@ export class AuthSessionsRepository extends BaseRepository<AuthSessionsEntity> {
 
     await repo.delete({
       id,
-      user: { id: user_id },
+      user_id,
     });
   }
 
@@ -107,21 +121,7 @@ export class AuthSessionsRepository extends BaseRepository<AuthSessionsEntity> {
     const repo = this.getRepo(manager);
 
     await repo.delete({
-      user: { id: user_id },
-    });
-  }
-
-  // PRIVATE METHODS
-
-  private async findByTokenAndUser(
-    refresh_token: string,
-    user_id: string,
-    manager?: EntityManager,
-  ): Promise<AuthSessionsEntity | null> {
-    const repo = this.getRepo(manager);
-
-    return await repo.findOne({
-      where: { refresh_token, user: { id: user_id } },
+      user_id,
     });
   }
 }

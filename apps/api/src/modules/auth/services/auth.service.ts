@@ -57,7 +57,11 @@ export class AuthService {
     this.logger.setContext(AuthService.name);
   }
 
-  async register(userData: RegisterDto) {
+  async register(
+    userData: RegisterDto,
+    device_id: string,
+    metadata?: Record<string, any>,
+  ) {
     const existingUser = await this.userService.getByEmail({
       validateStatus: false,
       email: userData.email,
@@ -73,10 +77,8 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(userData.password, salt_rounds);
 
-    // Atomic Transaction for Account Creation
     return await this.dataSource.transaction(async (manager) => {
       try {
-        // Save the new User
         const newUser = await this.userService.create(
           {
             ...userData,
@@ -85,17 +87,17 @@ export class AuthService {
           manager,
         );
 
-        // Generate the token pair
         const tokens = await this.generateTokens({
           sub: newUser.id,
           email: newUser.email,
           role: newUser.role,
         });
 
-        // Store the session
-        await this.authSessionsService.create(
+        await this.authSessionsService.upsertSession(
           this.encryptionService.hash(tokens.refresh_token),
           newUser.id,
+          device_id,
+          metadata,
           manager,
         );
 
@@ -107,7 +109,6 @@ export class AuthService {
           context: {},
         };
 
-        // Send Welcome and Verification Email
         await this.mailQueue.add(
           MailJobName.SEND_WELCOME,
           WelcomeEmailJobPayload,
@@ -115,6 +116,7 @@ export class AuthService {
             jobId: `welcome-${newUser.id}-${Date.now()}`,
           },
         );
+
         await this.generateAndSendToken(
           newUser,
           TokenType.EMAIL_VERIFICATION,
@@ -134,9 +136,7 @@ export class AuthService {
       } catch (error) {
         this.logger.error(
           LOG_MESSAGES.USER.REGISTRATION_FAILED(userData.email),
-          {
-            event: LOG_EVENTS.USER_REGISTRATION_FAILED,
-          },
+          { event: LOG_EVENTS.USER_REGISTRATION_FAILED },
           (error as Error).stack,
         );
 
@@ -149,9 +149,12 @@ export class AuthService {
     });
   }
 
-  async login(loginData: LoginDto) {
+  async login(
+    loginData: LoginDto,
+    device_id: string,
+    metadata?: Record<string, any>,
+  ) {
     try {
-      // Fetch User
       const user = await this.userService.getByEmail({
         email: loginData.email,
         options: {
@@ -176,7 +179,6 @@ export class AuthService {
         throw new UnauthorizedException(SYS_MESSAGES.INVALID_CREDENTIALS);
       }
 
-      // Verify Password
       const isPasswordValid = await this.verifyPassword(
         loginData.password,
         user.password,
@@ -191,7 +193,6 @@ export class AuthService {
       }
 
       if (user.is_two_factor_enabled) {
-        // Issue a short-lived temporary token
         const { v7 } = (await import('uuid')) as { v7: () => string };
 
         const temp_token = await this.jwtService.signAsync(
@@ -223,7 +224,11 @@ export class AuthService {
         };
       }
 
-      return await this.sessionManagementWithTokenGeneration(user);
+      return await this.sessionManagementWithTokenGeneration(
+        user,
+        device_id,
+        metadata,
+      );
     } catch (error) {
       if (error instanceof HttpException) throw error;
 
@@ -242,11 +247,15 @@ export class AuthService {
     }
   }
 
-  async verify2faLogin(temp_token: string, code: string) {
+  async verify2faLogin(
+    temp_token: string,
+    code: string,
+    device_id: string,
+    metadata?: Record<string, any>,
+  ) {
     let payload: AuthJwtPayload;
 
     try {
-      // verify using the specific 2FA secret
       payload = await this.jwtService.verifyAsync(temp_token, {
         secret: this.configService.get<string>('JWT.TEMP_2FA_SECRET'),
       });
@@ -254,17 +263,14 @@ export class AuthService {
       throw new UnauthorizedException(SYS_MESSAGES.LOGIN_SESSION_EXPIRED);
     }
 
-    // Check Redis Denylist before proceeding
     await this.blacklistService.revokeAccess(temp_token, payload);
 
-    // Double check it's actually a 2FA token
     if (!payload.is_temp_2fa) {
       throw new UnauthorizedException(SYS_MESSAGES.UNAUTHORIZED);
     }
 
     const userId = payload.sub;
 
-    // Verify the code
     const isValid = await this.twoFactorService.verifyTwoFactorCode(
       userId,
       code,
@@ -277,7 +283,6 @@ export class AuthService {
       throw new UnauthorizedException(SYS_MESSAGES.INVALID_2FA_CODE);
     }
 
-    // Fetch user to complete login
     const user = await this.userService.getById({ id: userId });
 
     if (!user) {
@@ -288,15 +293,22 @@ export class AuthService {
       throw new NotFoundException(SYS_MESSAGES.USER_NOT_FOUND);
     }
 
-    const data = await this.sessionManagementWithTokenGeneration(user);
-
-    // Blacklist temp token so it can never be used again
+    const data = await this.sessionManagementWithTokenGeneration(
+      user,
+      device_id,
+      metadata,
+    );
     await this.blacklistService.blacklistToken(temp_token, payload);
 
     return data;
   }
 
-  async verify2faRecovery(temp_token: string, recoveryCode: string) {
+  async verify2faRecovery(
+    temp_token: string,
+    recoveryCode: string,
+    device_id: string,
+    metadata?: Record<string, any>,
+  ) {
     let payload: AuthJwtPayload;
     try {
       payload = await this.jwtService.verifyAsync(temp_token, {
@@ -306,7 +318,6 @@ export class AuthService {
       throw new UnauthorizedException(SYS_MESSAGES.LOGIN_SESSION_EXPIRED);
     }
 
-    // Check Redis Denylist before proceeding
     await this.blacklistService.revokeAccess(temp_token, payload);
 
     if (!payload.is_temp_2fa) {
@@ -327,7 +338,6 @@ export class AuthService {
       throw new BadRequestException(SYS_MESSAGES.NO_RECOVERY_CODES_LEFT);
     }
 
-    // Hash the incoming code to see if it matches any in the database
     const hashedIncomingCode = this.encryptionService.hash(recoveryCode);
     const codeMatchIndex =
       user.two_factor_recovery_codes.indexOf(hashedIncomingCode);
@@ -335,14 +345,11 @@ export class AuthService {
     if (codeMatchIndex === -1) {
       this.logger.security(
         LOG_MESSAGES.AUTH.TWO_FACTOR_RECOVERY_FAILED(userId),
-        {
-          event: LOG_EVENTS.AUTH_2FA_RECOVERY_FAILED,
-        },
+        { event: LOG_EVENTS.AUTH_2FA_RECOVERY_FAILED },
       );
       throw new UnauthorizedException(SYS_MESSAGES.INVALID_RECOVERY_CODE);
     }
 
-    // BURN THE CODE
     const updatedCodes = user.two_factor_recovery_codes.filter(
       (_, index) => index !== codeMatchIndex,
     );
@@ -357,43 +364,45 @@ export class AuthService {
 
     const fullUser = await this.userService.getById({ id: userId });
 
-    const data = await this.sessionManagementWithTokenGeneration(fullUser);
-
-    // Blacklist temp token so it can never be used again
+    const data = await this.sessionManagementWithTokenGeneration(
+      fullUser,
+      device_id,
+      metadata,
+    );
     await this.blacklistService.blacklistToken(temp_token, payload);
 
     return data;
   }
 
-  // Clears the active session for the user.
-  async logout(user_id: string, access_token: string, refresh_token?: string) {
+  async logout(
+    user_id: string,
+    access_token: string,
+    refresh_token: string,
+    device_id: string,
+  ) {
     await this.validateRefreshToken(refresh_token);
 
-    //  Delete the session from DB
     const activeSession = await this.authSessionsService.find(
-      this.encryptionService.hash(refresh_token!),
+      this.encryptionService.hash(refresh_token),
       user_id,
+      device_id,
     );
 
     if (!activeSession) {
       this.logger.security(LOG_MESSAGES.AUTH.UNAUTHORIZED_ACCESS('logout'), {
         event: LOG_EVENTS.AUTH_LOGOUT,
         user_id,
+        device_id,
       });
       throw new UnauthorizedException(SYS_MESSAGES.INVALID_REFRESH_TOKEN);
     }
 
-    if (activeSession) {
-      await this.authSessionsService.delete(activeSession.id, user_id);
-      this.logger.log(LOG_MESSAGES.AUTH.LOGOUT(user_id), {
-        event: LOG_EVENTS.AUTH_LOGOUT,
-      });
-    } else {
-      this.logger.security(LOG_MESSAGES.AUTH.UNAUTHORIZED_ACCESS('logout'), {
-        event: LOG_EVENTS.AUTH_LOGOUT,
-        user_id,
-      });
-    }
+    await this.authSessionsService.delete(activeSession.id, user_id);
+    this.logger.log(LOG_MESSAGES.AUTH.LOGOUT(user_id), {
+      event: LOG_EVENTS.AUTH_LOGOUT,
+      device_id,
+    });
+
     let decoded: AuthJwtPayload;
 
     try {
@@ -401,27 +410,20 @@ export class AuthService {
     } catch (error) {
       this.logger.error(
         LOG_MESSAGES.AUTH.TOKEN_DECODE_FAILED(access_token),
-        {
-          event: LOG_EVENTS.AUTH_LOGOUT,
-          user_id,
-        },
+        { event: LOG_EVENTS.AUTH_LOGOUT, user_id },
         (error as Error).stack,
       );
       throw new UnauthorizedException(SYS_MESSAGES.INVALID_ACCESS_TOKEN);
     }
 
-    // Blacklist Access Token
     await this.blacklistService.blacklistToken(access_token, decoded);
   }
 
-  // Refreshes the Access Token and rotates the Refresh Token
-  async refreshToken(refresh_token?: string) {
+  // TOKEN ROTATION
+  async refreshToken(refresh_token: string, device_id: string) {
     const { sub: user_id } = await this.validateRefreshToken(refresh_token);
 
-    const user = await this.userService.getById({
-      id: user_id,
-    });
-
+    const user = await this.userService.getById({ id: user_id });
     this.userService.validateUserStatus(user);
 
     const tokens = await this.generateTokens({
@@ -431,21 +433,23 @@ export class AuthService {
     });
 
     try {
-      // Replace the old hash with the new one
       await this.authSessionsService.update(
-        this.encryptionService.hash(refresh_token!),
+        this.encryptionService.hash(refresh_token),
         this.encryptionService.hash(tokens.refresh_token),
         user_id,
+        device_id,
       );
+
       this.logger.audit(LOG_MESSAGES.AUTH.REFRESH_TOKEN_ROTATED(user_id), {
         event: LOG_EVENTS.AUTH_REFRESH_TOKEN_ROTATED,
+        device_id,
       });
     } catch (error) {
       if (error instanceof UnauthorizedException) {
-        // Revoke all sessions and force logout from all devices when a reused or invalid token is detected.
         await this.authSessionsService.deleteAll(user_id);
         this.logger.security(LOG_MESSAGES.AUTH.REFRESH_TOKEN_REUSE(user_id), {
           event: LOG_EVENTS.AUTH_REFRESH_TOKEN_REUSE,
+          device_id,
           error: (error as Error).message,
         });
         throw new UnauthorizedException(SYS_MESSAGES.INVALID_REFRESH_TOKEN);
@@ -461,7 +465,6 @@ export class AuthService {
       );
 
       if (error instanceof HttpException) throw error;
-
       throw new InternalServerErrorException(
         SYS_MESSAGES.INTERNAL_SERVER_ERROR,
       );
@@ -476,9 +479,7 @@ export class AuthService {
       validateStatus: false,
     });
 
-    if (!user || user.is_email_verified) {
-      return;
-    }
+    if (!user || user.is_email_verified) return;
 
     await this.generateAndSendToken(user, TokenType.EMAIL_VERIFICATION);
   }
@@ -489,10 +490,7 @@ export class AuthService {
       TokenType.EMAIL_VERIFICATION,
     );
 
-    // Update the user
-    await this.userService.update(user.id, {
-      is_email_verified: true,
-    });
+    await this.userService.update(user.id, { is_email_verified: true });
 
     this.logger.audit(LOG_MESSAGES.AUTH.EMAIL_VERIFIED(user.id), {
       event: LOG_EVENTS.AUTH_EMAIL_VERIFIED,
@@ -513,7 +511,6 @@ export class AuthService {
   async resetPassword(dto: ResetPasswordDto) {
     await this.validateAndDeleteToken(dto.token, TokenType.PASSWORD_RESET);
 
-    // Hash the new password
     const salt_rounds = this.configService.getOrThrow<number>(
       'AUTH.BCRYPT_SALT_ROUNDS',
     );
@@ -524,7 +521,6 @@ export class AuthService {
       TokenType.PASSWORD_RESET,
     );
 
-    // Update user and FORCE LOGOUT of all devices
     await this.dataSource.transaction(async (manager) => {
       await this.userService.update(
         user.id,
@@ -541,15 +537,18 @@ export class AuthService {
 
   // PRIVATE METHODS
 
-  private async sessionManagementWithTokenGeneration(user: UserEntity) {
-    // Session Management
+  private async sessionManagementWithTokenGeneration(
+    user: UserEntity,
+    device_id: string,
+    metadata?: Record<string, any>,
+  ) {
     const sessions = await this.authSessionsService.findAll(user.id);
-
     const sessionLimit =
       this.configService.getOrThrow<number>('AUTH.SESSION_LIMIT');
 
-    if (sessions.length >= sessionLimit) {
-      // Evict oldest session if limit reached
+    const isKnownDevice = sessions.some((s) => s.device_id === device_id);
+
+    if (!isKnownDevice && sessions.length >= sessionLimit) {
       const sortedSessions = [...sessions].sort(
         (a, b) =>
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
@@ -562,27 +561,26 @@ export class AuthService {
       await this.authSessionsService.delete(oldestSession.id, user.id);
     }
 
-    // Generate and persist new session
     const tokens = await this.generateTokens({
       sub: user.id,
       email: user.email,
       role: user.role,
     });
 
-    await this.authSessionsService.create(
+    await this.authSessionsService.upsertSession(
       this.encryptionService.hash(tokens.refresh_token),
       user.id,
+      device_id,
+      metadata,
     );
 
     this.logger.audit(LOG_MESSAGES.AUTH.LOGIN_SUCCESS(user.id), {
       email: user.email,
       event: LOG_EVENTS.AUTH_LOGIN_SUCCESS,
+      device_id,
     });
 
-    return {
-      tokens,
-      user,
-    };
+    return { tokens, user };
   }
 
   private async generateTokens(data: AuthJwtPayload) {
@@ -594,7 +592,6 @@ export class AuthService {
 
   private async generateAccessToken(data: AuthJwtPayload) {
     const { v7 } = (await import('uuid')) as { v7: () => string };
-
     return await this.jwtService.signAsync({ ...data, jti: v7() });
   }
 
@@ -620,7 +617,6 @@ export class AuthService {
     } catch {
       throw new UnauthorizedException(SYS_MESSAGES.INVALID_REFRESH_TOKEN);
     }
-
     return payload;
   }
 
@@ -633,14 +629,11 @@ export class AuthService {
     type: TokenType,
     manager?: EntityManager,
   ) {
-    // Delete any existing unused tokens of this type to prevent spam
     await this.authTokenRepository.deleteByType(user.id, type, manager);
 
-    // Generate secure 64-character hex string
     const rawToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = this.encryptionService.hash(rawToken);
 
-    // Set Expiration
     const expirationHours =
       type === TokenType.EMAIL_VERIFICATION
         ? this.configService.getOrThrow<number>(
@@ -662,15 +655,9 @@ export class AuthService {
       manager,
     );
 
-    //  Send the Email
     const jobPayload: IMailJob<IAuthTokenContext> = {
-      user: {
-        name: user.name,
-        email: user.email,
-      },
-      context: {
-        rawToken,
-      },
+      user: { name: user.name, email: user.email },
+      context: { rawToken },
     };
 
     if (type === TokenType.EMAIL_VERIFICATION) {
@@ -686,7 +673,6 @@ export class AuthService {
 
   private async validateAndDeleteToken(rawToken: string, type: TokenType) {
     const hashedToken = this.encryptionService.hash(rawToken);
-
     const tokenRecord = await this.authTokenRepository.findToken(
       hashedToken,
       type,
@@ -701,9 +687,7 @@ export class AuthService {
       throw new BadRequestException(SYS_MESSAGES.INVALID_TOKEN);
     }
 
-    // Burn the token so it can never be used again
     await this.authTokenRepository.delete(tokenRecord.id);
-
     return tokenRecord.user;
   }
 }

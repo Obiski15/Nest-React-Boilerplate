@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { AUTH_ROUTES } from './constants';
 
 export default function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, searchParams } = request.nextUrl;
 
   // Check for refresh token cookie
   const hasRefreshToken = request.cookies.has('refresh_token');
@@ -13,6 +13,9 @@ export default function proxy(request: NextRequest) {
 
   if (!isAuthRoute && !hasRefreshToken) {
     const url = new URL('/login', request.url);
+    searchParams.forEach((value, key) => {
+      url.searchParams.set(key, value);
+    });
     url.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(url);
   }

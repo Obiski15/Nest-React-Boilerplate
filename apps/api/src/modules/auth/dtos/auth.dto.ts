@@ -1,8 +1,9 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
   IsEnum,
   IsNotEmpty,
+  IsObject,
   IsOptional,
   IsString,
   MinLength,
@@ -29,6 +30,22 @@ export class RegisterDto extends CreateUserDto implements RegisterRequest {
   @IsEnum(ClientType)
   @IsNotEmpty()
   client_id: ClientType;
+
+  @ApiProperty({
+    description: 'Unique cryptographic identifier for the physical device',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @IsString()
+  @IsNotEmpty()
+  device_id: string;
+
+  @ApiPropertyOptional({
+    description: 'Hardware and browser metadata for active session tracking',
+    example: { userAgent: 'Mozilla/5.0...', timeZone: 'Africa/Lagos' },
+  })
+  @IsObject()
+  @IsOptional()
+  metadata?: Record<string, any>;
 }
 
 export class LoginDto implements LoginRequest {
@@ -56,6 +73,21 @@ export class LoginDto implements LoginRequest {
   @IsEnum(ClientType)
   @IsNotEmpty()
   client_id: ClientType;
+
+  @ApiProperty({
+    description: 'Unique cryptographic identifier for the physical device',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @IsString()
+  @IsNotEmpty()
+  device_id: string;
+
+  @ApiPropertyOptional({
+    description: 'Hardware and browser metadata for active session tracking',
+  })
+  @IsObject()
+  @IsOptional()
+  metadata?: Record<string, any>;
 }
 
 export class RefreshTokenDto implements RefreshRequest {
@@ -67,11 +99,19 @@ export class RefreshTokenDto implements RefreshRequest {
   @IsNotEmpty()
   client_id: ClientType;
 
+  @ApiProperty({
+    description: 'Unique cryptographic identifier for the physical device',
+  })
+  @IsString()
+  @IsNotEmpty()
+  device_id: string;
+
   @ApiProperty({ description: 'The valid refresh token' })
   @IsString()
   @IsOptional()
   refresh_token?: string;
 }
+
 export class LogoutDto implements LogoutRequest {
   @ApiProperty({
     description: 'The client type to log out from',
@@ -81,11 +121,19 @@ export class LogoutDto implements LogoutRequest {
   @IsNotEmpty()
   client_id: ClientType;
 
+  @ApiProperty({
+    description: 'Unique cryptographic identifier for the physical device',
+  })
+  @IsString()
+  @IsNotEmpty()
+  device_id: string;
+
   @ApiProperty({ description: 'The refresh token you wish to revoke' })
   @IsString()
   @IsOptional()
   refresh_token?: string;
 }
+
 export class ResendVerificationEmailDto implements EmailRequest {
   @ApiProperty({
     description: 'Email address associated with the account',
@@ -95,6 +143,7 @@ export class ResendVerificationEmailDto implements EmailRequest {
   @IsNotEmpty()
   email: string;
 }
+
 export class ForgotPasswordDto implements EmailRequest {
   @ApiProperty({
     description: 'Email address associated with the account',
@@ -104,12 +153,14 @@ export class ForgotPasswordDto implements EmailRequest {
   @IsNotEmpty()
   email: string;
 }
+
 export class VerifyEmailDto implements VerifyEmailRequest {
   @ApiProperty({ description: 'The 64-character hex token sent to the email' })
   @IsString()
   @IsNotEmpty()
   token: string;
 }
+
 export class ResetPasswordDto implements ResetPasswordRequest {
   @ApiProperty({ description: 'The 64-character hex token sent to the email' })
   @IsString()

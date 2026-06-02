@@ -2,7 +2,7 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is([data-theme='dark'] *));
 
 @theme inline {
   --color-background: var(--background);
@@ -83,7 +83,7 @@
   --sidebar-ring: oklch(0.62 0.11 226);
 }
 
-.dark {
+[data-theme='dark'] {
   --background: oklch(0.14 0.02 255);
   --foreground: oklch(0.98 0.01 95);
   --card: oklch(0.2 0.02 255);

@@ -21,6 +21,8 @@ export type LoginRequest = {
   email: string;
   password: string;
   client_id: ClientType;
+  device_id: string;
+  metadata?: Record<string, unknown>;
 };
 
 export type RegisterRequest = {
@@ -28,6 +30,8 @@ export type RegisterRequest = {
   email: string;
   password: string;
   client_id: ClientType;
+  device_id: string;
+  metadata?: Record<string, unknown>;
 };
 
 export type EmailRequest = {
@@ -45,11 +49,13 @@ export type ResetPasswordRequest = {
 
 export type LogoutRequest = {
   client_id: ClientType;
+  device_id: string;
   refresh_token?: string;
 };
 
 export type RefreshRequest = {
   client_id: ClientType;
+  device_id: string;
   refresh_token?: string;
 };
 
@@ -64,11 +70,15 @@ export interface TwoFactorVerificationRequest {
 
 export interface TwoFactorAuthenticationRequest extends TwoFactorVerificationRequest {
   temp_token: string;
+  device_id: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface RecoveryCodeRequest extends TokenRequest {
   recovery_code: string;
   client_id: ClientType;
+  device_id: string;
+  metadata?: Record<string, unknown>;
 }
 
 export type SessionFilters = {

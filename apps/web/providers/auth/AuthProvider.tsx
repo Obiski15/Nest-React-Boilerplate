@@ -14,6 +14,7 @@ import { UserRecord } from '@app/types';
 import { authService } from '@/app/api/services/auth.service';
 import { TokenService } from '@/app/api/services/token.service';
 import { userService } from '@/app/api/services/user.service';
+import { AUTH_ROUTES } from '@/constants';
 
 import { AuthContextType } from './interfaces/auth.provider.interface';
 
@@ -28,6 +29,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const pathname = usePathname();
   const router = useRouter();
+
+  const isAuthRoute = () =>
+    AUTH_ROUTES.some((route) => pathname.startsWith(route));
 
   const fetchUser = useCallback(async () => {
     if (isInitialized) return;
@@ -44,10 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  useEffect(() => {
-    void fetchUser();
-  }, []);
-
   const logout = async () => {
     try {
       setIsLoading(true);
@@ -60,11 +60,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null);
       setIsLoading(false);
 
-      if (pathname !== '/login' && pathname !== '/register') {
+      if (!isAuthRoute()) {
         router.push('/login');
       }
     }
   };
+
+  useEffect(() => {
+    void fetchUser();
+  }, []);
+
+  useEffect(() => {
+    const handleLogout = () => {
+      if (!isAuthRoute()) {
+        router.replace('/login?expired=true');
+      }
+    };
+
+    window.addEventListener('auth:logout', handleLogout);
+
+    return () => {
+      window.removeEventListener('auth:logout', handleLogout);
+    };
+  }, []);
 
   return (
     <AuthContext.Provider

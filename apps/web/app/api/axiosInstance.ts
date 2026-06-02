@@ -2,8 +2,8 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 import { AuthSessionResponse } from '@app/types';
 import { config } from '@/config';
-import { AUTH_ROUTES } from '@/constants';
 
+import { DeviceService } from './services/device.service';
 import { TokenService } from './services/token.service';
 
 interface CustomConfig extends InternalAxiosRequestConfig {
@@ -19,6 +19,11 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true,
+});
+
+const refreshClient = axios.create({
+  baseURL: isServer ? config.API_BASE_URL + BASE_PATH : BASE_PATH,
   withCredentials: true,
 });
 
@@ -75,12 +80,13 @@ apiClient.interceptors.response.use(
         failedQueue.push({ resolve, reject });
       })
         .then((token) => {
+          originalRequest.headers = originalRequest.headers || {};
           originalRequest.headers.Authorization = `Bearer ${token}`;
           return apiClient(originalRequest);
         })
         .catch((error) => {
           if (error instanceof Error) {
-            void Promise.reject(error);
+            return Promise.reject(error);
           }
         });
     }
@@ -89,9 +95,12 @@ apiClient.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const response = await axios.post<{ data: AuthSessionResponse }>(
-        `${BASE_PATH}/auth/refresh`,
-        { client_id: 'web_app' },
+      const response = await refreshClient.post<{ data: AuthSessionResponse }>(
+        '/auth/refresh',
+        {
+          client_id: 'web_app',
+          device_id: DeviceService.getDeviceId(),
+        },
         { withCredentials: true },
       );
 
@@ -106,14 +115,9 @@ apiClient.interceptors.response.use(
       processQueue(refreshError as Error);
       TokenService.clearAccessToken();
 
-      const isAuthRoute = AUTH_ROUTES.some((route) =>
-        window.location.href.includes(route),
-      );
-
-      if (typeof window !== 'undefined' && !isAuthRoute) {
-        window.location.href = '/login';
+      if (!isServer) {
+        window.dispatchEvent(new Event('auth:logout'));
       }
-
       if (refreshError instanceof Error) {
         return Promise.reject(err);
       }

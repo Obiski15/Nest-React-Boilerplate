@@ -16,29 +16,37 @@ import {
 } from '@app/types';
 
 import BaseService from './base.service';
+import { DeviceService } from './device.service';
 
 class AuthService extends BaseService {
   constructor() {
     super('/auth');
   }
 
-  register(data: Omit<RegisterRequest, 'client_id'>) {
+  register(
+    data: Omit<RegisterRequest, 'client_id' | 'device_id' | 'metadata'>,
+  ) {
     return this.post<RegisterRequest, AuthSessionResponse>('/register', {
       ...data,
       client_id: ClientType.WEB,
+      device_id: DeviceService.getDeviceId(),
+      metadata: DeviceService.getDeviceMetadata(),
     });
   }
 
-  login(data: Omit<LoginRequest, 'client_id'>) {
+  login(data: Omit<LoginRequest, 'client_id' | 'device_id' | 'metadata'>) {
     return this.post<LoginRequest, UnifiedLoginResponse>('/login', {
       ...data,
       client_id: ClientType.WEB,
+      device_id: DeviceService.getDeviceId(),
+      metadata: DeviceService.getDeviceMetadata(),
     });
   }
 
-  logout(data?: { refresh_token?: string }) {
+  logout(data?: Omit<LogoutRequest, 'client_id' | 'device_id'>) {
     return this.post<LogoutRequest, void>('/logout', {
       client_id: ClientType.WEB,
+      device_id: DeviceService.getDeviceId(),
       ...data,
     });
   }
@@ -46,7 +54,10 @@ class AuthService extends BaseService {
   refresh() {
     return this.post<RefreshRequest, { tokens: AuthSessionResponse['tokens'] }>(
       '/refresh',
-      { client_id: ClientType.WEB },
+      {
+        client_id: ClientType.WEB,
+        device_id: DeviceService.getDeviceId(),
+      },
     );
   }
 
@@ -71,15 +82,23 @@ class AuthService extends BaseService {
   }
 
   revokeAllSessions() {
+    // TODO: pass device_id to log which device triggered the global revocation
     return this.delete<void>('/sessions');
   }
 
-  authenticate2fa(data: Omit<TwoFactorAuthenticationRequest, 'client_id'>) {
+  authenticate2fa(
+    data: Omit<
+      TwoFactorAuthenticationRequest,
+      'client_id' | 'device_id' | 'metadata'
+    >,
+  ) {
     return this.post<TwoFactorAuthenticationRequest, AuthSessionResponse>(
       '/2fa/authenticate',
       {
         ...data,
         client_id: ClientType.WEB,
+        device_id: DeviceService.getDeviceId(),
+        metadata: DeviceService.getDeviceMetadata(),
       },
     );
   }
@@ -97,6 +116,7 @@ class AuthService extends BaseService {
   turnOnTwoFactorAuthentication(
     data: Omit<TwoFactorVerificationRequest, 'client_id'>,
   ) {
+    // TODO: Include device_id to audit settings changes
     return this.post<TwoFactorVerificationRequest, { backup_codes: string[] }>(
       '/2fa/turn-on',
       { ...data, client_id: ClientType.WEB },
@@ -112,10 +132,14 @@ class AuthService extends BaseService {
     });
   }
 
-  authenticateWithRecoveryCode(data: Omit<RecoveryCodeRequest, 'client_id'>) {
+  authenticateWithRecoveryCode(
+    data: Omit<RecoveryCodeRequest, 'client_id' | 'device_id' | 'metadata'>,
+  ) {
     return this.post<RecoveryCodeRequest, AuthSessionResponse>('/2fa/recover', {
       ...data,
       client_id: ClientType.WEB,
+      device_id: DeviceService.getDeviceId(),
+      metadata: DeviceService.getDeviceMetadata(),
     });
   }
 }

@@ -2,7 +2,7 @@
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
 
-@custom-variant dark (&:is(.dark *));
+@custom-variant dark (&:is([data-theme='dark'] *));
 
 @theme inline {
   --color-background: var(--background);
@@ -83,7 +83,7 @@
   --sidebar-ring: oklch(0.62 0.11 226);
 }
 
-.dark {
+[data-theme='dark'] {
   --background: oklch(0.14 0.02 255);
   --foreground: oklch(0.98 0.01 95);
   --card: oklch(0.2 0.02 255);
@@ -184,6 +184,6 @@
   }
 
   .app-surface {
-    @apply border-border/70 bg-card/90 supports-[backdrop-filter]:bg-card/80 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.55)] backdrop-blur;
+    @apply border-border/70 bg-card/90 supports-backdrop-filter:bg-card/80 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.55)] backdrop-blur;
   }
 }

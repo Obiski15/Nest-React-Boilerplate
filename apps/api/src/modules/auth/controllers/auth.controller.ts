@@ -3,11 +3,11 @@ import {
   Controller,
   Delete,
   Get,
+  HttpException,
   Post,
   Query,
   Req,
   Res,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
@@ -79,7 +79,12 @@ export class AuthController {
     @Body() body: RegisterDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const data = await this.authService.register(body);
+    const data = await this.authService.register(
+      body,
+      body.device_id,
+      body.metadata,
+    );
+
     if (body.client_id === ClientType.WEB && 'tokens' in data) {
       this.cookieService.setRefreshToken(res, data.tokens.refresh_token);
 
@@ -96,7 +101,11 @@ export class AuthController {
     @Body() body: LoginDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const data = await this.authService.login(body);
+    const data = await this.authService.login(
+      body,
+      body.device_id,
+      body.metadata,
+    );
 
     if (body.client_id === ClientType.WEB && 'tokens' in data) {
       this.cookieService.setRefreshToken(res, data.tokens.refresh_token);
@@ -125,7 +134,13 @@ export class AuthController {
       refresh_token = body.refresh_token;
     }
 
-    await this.authService.logout(user_id, access_token, refresh_token);
+    await this.authService.logout(
+      user_id,
+      access_token,
+      refresh_token as string,
+      body.device_id,
+    );
+
     if (body.client_id === ClientType.WEB) {
       this.cookieService.clearRefreshToken(res);
     }
@@ -149,7 +164,10 @@ export class AuthController {
         refresh_token = body.refresh_token;
       }
 
-      const data = await this.authService.refreshToken(refresh_token);
+      const data = await this.authService.refreshToken(
+        refresh_token as string,
+        body.device_id,
+      );
 
       if (body.client_id === ClientType.WEB && 'tokens' in data) {
         this.cookieService.setRefreshToken(res, data.tokens.refresh_token);
@@ -159,10 +177,7 @@ export class AuthController {
 
       return data;
     } catch (error) {
-      if (
-        body.client_id === ClientType.WEB &&
-        error instanceof UnauthorizedException
-      ) {
+      if (body.client_id === ClientType.WEB && error instanceof HttpException) {
         this.cookieService.clearRefreshToken(res);
       }
       throw error;
@@ -234,6 +249,8 @@ export class AuthController {
     const data = await this.authService.verify2faLogin(
       body.temp_token,
       body.code,
+      body.device_id,
+      body.metadata,
     );
 
     if (body.client_id === ClientType.WEB && 'tokens' in data) {
@@ -306,6 +323,8 @@ export class AuthController {
     const data = await this.authService.verify2faRecovery(
       body.temp_token,
       body.recovery_code,
+      body.device_id,
+      body.metadata,
     );
 
     if (body.client_id === ClientType.WEB && 'tokens' in data) {

@@ -30,28 +30,41 @@ export class AuthSessionsService {
   }
 
   async findAll(user_id: string, manager?: EntityManager) {
-    const sessions = await this.sessionsRepo.findAllByUser(user_id, manager);
-
-    return sessions;
+    return await this.sessionsRepo.findAllByUser(user_id, manager);
   }
 
-  async find(refresh_token: string, user_id: string, manager?: EntityManager) {
-    return await this.sessionsRepo.findSession(refresh_token, user_id, manager);
-  }
-
-  async create(
+  async find(
     refresh_token: string,
     user_id: string,
+    device_id: string,
     manager?: EntityManager,
   ) {
-    const session = await this.sessionsRepo.createSession(
+    return await this.sessionsRepo.findSession(
       refresh_token,
       user_id,
+      device_id,
+      manager,
+    );
+  }
+
+  async upsertSession(
+    refresh_token: string,
+    user_id: string,
+    device_id: string,
+    metadata?: Record<string, unknown>,
+    manager?: EntityManager,
+  ) {
+    const session = await this.sessionsRepo.upsertSession(
+      refresh_token,
+      user_id,
+      device_id,
+      metadata,
       manager,
     );
 
     this.logger.log(LOG_MESSAGES.SESSION.CREATED(user_id), {
       event: LOG_EVENTS.SESSION_CREATED,
+      device_id,
     });
 
     return session;
@@ -61,18 +74,21 @@ export class AuthSessionsService {
     old_refresh_token: string,
     new_refresh_token: string,
     user_id: string,
+    device_id: string,
     manager?: EntityManager,
   ) {
     const session = await this.sessionsRepo.updateSession(
       old_refresh_token,
       new_refresh_token,
       user_id,
+      device_id,
       manager,
     );
 
     if (!session) {
       this.logger.security(LOG_MESSAGES.SESSION.UPDATE_FAILED(user_id), {
         event: LOG_EVENTS.SESSION_UPDATE_FAILED,
+        device_id,
       });
       throw new UnauthorizedException(SYS_MESSAGES.INVALID_REFRESH_TOKEN);
     }

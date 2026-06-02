@@ -1,5 +1,12 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsString, Length } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsObject,
+  IsOptional,
+  IsString,
+  Length,
+} from 'class-validator';
 
 import {
   ClientType,
@@ -18,11 +25,12 @@ export class TwoFactorCodeDto implements TwoFactorVerificationRequest {
   code: string;
 
   @ApiProperty({
-    description: 'The client type logging in',
+    description: 'The client type',
     example: ClientType.WEB,
     required: false,
   })
   @IsEnum(ClientType)
+  @IsOptional()
   client_id: ClientType;
 }
 
@@ -32,10 +40,25 @@ export class LoginWith2faDto
 {
   @ApiProperty({
     description: 'The temporary token returned from the initial login step',
-    required: false,
   })
   @IsString()
+  @IsNotEmpty()
   temp_token: string;
+
+  @ApiProperty({
+    description: 'Unique cryptographic identifier for the physical device',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @IsString()
+  @IsNotEmpty()
+  device_id: string;
+
+  @ApiPropertyOptional({
+    description: 'Hardware and browser metadata for active session tracking',
+  })
+  @IsObject()
+  @IsOptional()
+  metadata?: Record<string, any>;
 }
 
 export class LoginWithRecoveryCodeDto implements RecoveryCodeRequest {
@@ -60,4 +83,19 @@ export class LoginWithRecoveryCodeDto implements RecoveryCodeRequest {
   @IsEnum(ClientType)
   @IsNotEmpty()
   client_id: ClientType;
+
+  @ApiProperty({
+    description: 'Unique cryptographic identifier for the physical device',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  @IsString()
+  @IsNotEmpty()
+  device_id: string;
+
+  @ApiPropertyOptional({
+    description: 'Hardware and browser metadata for active session tracking',
+  })
+  @IsObject()
+  @IsOptional()
+  metadata?: Record<string, any>;
 }

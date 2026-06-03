@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { AlertTriangle, CheckCircle2, Mail } from 'lucide-react';
+import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Suspense, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -67,6 +67,22 @@ function VerifyEmailNoticeContent() {
     }
   };
 
+  if (!email && !token) {
+    return (
+      <AuthWrapper
+        title="Invalid verification link"
+        description="The verification link is missing required information."
+      >
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            The verification link is invalid or has expired.
+          </AlertDescription>
+        </Alert>
+      </AuthWrapper>
+    );
+  }
+
   // Verifying token state
   if (isVerifying) {
     return (
@@ -93,11 +109,17 @@ function VerifyEmailNoticeContent() {
           <AlertDescription>{verifyError}</AlertDescription>
         </Alert>
         <div className="space-y-2">
-          <Button
-            className="w-full"
-            onClick={() => router.push('/verify-email')}
-          >
-            Request new verification email
+          <Button className="w-full" onClick={() => void handleResend()}>
+            {isResending ? (
+              <>
+                <Spinner className="mr-2 h-4 w-4" />
+                Sending...
+              </>
+            ) : isActive ? (
+              `Resend in ${seconds}s`
+            ) : (
+              'Resend verification email'
+            )}
           </Button>
           <Button
             variant="ghost"
@@ -133,53 +155,8 @@ function VerifyEmailNoticeContent() {
     );
   }
 
-  // Default: check your email
-  return (
-    <AuthWrapper
-      title="Check your email"
-      description={
-        email
-          ? `We sent a verification link to ${email}`
-          : 'We sent you a verification link'
-      }
-      backButtonLabel="Wrong email?"
-      backButtonHref="/register"
-    >
-      <div className="flex flex-col items-center gap-4 py-2 text-center">
-        <div className="bg-primary/10 rounded-full p-4">
-          <Mail className="text-primary h-8 w-8" />
-        </div>
-
-        <div className="space-y-1">
-          <p className="text-muted-foreground text-sm">
-            Click the link in your email to verify your account. The link
-            expires in 24 hours.
-          </p>
-          <p className="text-muted-foreground text-xs">
-            Check your spam folder if you don't see it.
-          </p>
-        </div>
-      </div>
-
-      <Button
-        variant="outline"
-        className="w-full"
-        disabled={isResending || isActive || !email}
-        onClick={() => void handleResend()}
-      >
-        {isResending ? (
-          <>
-            <Spinner className="mr-2 h-4 w-4" />
-            Sending...
-          </>
-        ) : isActive ? (
-          `Resend in ${seconds}s`
-        ) : (
-          'Resend verification email'
-        )}
-      </Button>
-    </AuthWrapper>
-  );
+  // Default
+  return;
 }
 
 export function VerifyEmailNotice() {

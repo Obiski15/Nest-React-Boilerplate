@@ -1,6 +1,8 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { EntityManager } from 'typeorm';
 
+import { DeviceMetadata } from '@app/types';
+
 import { AppLogger } from '../../../common/logger/logger.service';
 import { LOG_EVENTS } from '../../../constants/log_events';
 import { LOG_MESSAGES } from '../../../constants/log_messages';
@@ -51,7 +53,7 @@ export class AuthSessionsService {
     refresh_token: string,
     user_id: string,
     device_id: string,
-    metadata?: Record<string, unknown>,
+    metadata?: DeviceMetadata,
     manager?: EntityManager,
   ) {
     const session = await this.sessionsRepo.upsertSession(

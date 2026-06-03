@@ -1,6 +1,8 @@
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { Column, Entity, JoinColumn, ManyToOne, Unique } from 'typeorm';
 
+import { DeviceMetadata } from '@app/types';
+
 import BaseEntity from '../../../entities/base.entity';
 import { UserEntity } from '../../user/entities/user.entity';
 
@@ -19,7 +21,7 @@ export class AuthSessionsEntity extends BaseEntity {
 
   @IsOptional()
   @Column({ type: 'jsonb', nullable: true })
-  metadata?: Record<string, any>;
+  metadata?: DeviceMetadata;
 
   @Column()
   user_id: string;

@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource, EntityManager } from 'typeorm';
+import { DataSource, EntityManager, QueryDeepPartialEntity } from 'typeorm';
+
+import { DeviceMetadata } from '@app/types';
 
 import { BaseRepository } from '../../../repository/base.repository';
 import { SessionFiltersDto } from '../dtos/auth_sessions.dto';
@@ -38,14 +40,15 @@ export class AuthSessionsRepository extends BaseRepository<AuthSessionsEntity> {
       });
     }
 
-    return await this.paginate(queryBuilder, filters);
+    const { data: sessions, meta } = await this.paginate(queryBuilder, filters);
+    return { sessions, meta };
   }
 
   async upsertSession(
     refresh_token: string,
     user_id: string,
     device_id: string,
-    metadata?: Record<string, any>,
+    metadata?: DeviceMetadata,
     manager?: EntityManager,
   ): Promise<AuthSessionsEntity> {
     const repo = this.getRepo(manager);
@@ -55,7 +58,9 @@ export class AuthSessionsRepository extends BaseRepository<AuthSessionsEntity> {
         refresh_token,
         user_id,
         device_id,
-        metadata,
+        metadata: metadata as
+          | QueryDeepPartialEntity<DeviceMetadata>
+          | undefined,
       },
       ['user_id', 'device_id'],
     );

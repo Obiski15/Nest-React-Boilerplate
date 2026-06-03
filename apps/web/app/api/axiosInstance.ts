@@ -1,6 +1,6 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
-import { AuthSessionResponse } from '@app/types';
+import { AuthResponse } from '@app/types';
 import { config } from '@/config';
 
 import { DeviceService } from './services/device.service';
@@ -95,7 +95,7 @@ apiClient.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const response = await refreshClient.post<{ data: AuthSessionResponse }>(
+      const response = await refreshClient.post<{ data: AuthResponse }>(
         '/auth/refresh',
         {
           client_id: 'web_app',
@@ -118,6 +118,7 @@ apiClient.interceptors.response.use(
       if (!isServer) {
         window.dispatchEvent(new Event('auth:logout'));
       }
+
       if (refreshError instanceof Error) {
         return Promise.reject(err);
       }

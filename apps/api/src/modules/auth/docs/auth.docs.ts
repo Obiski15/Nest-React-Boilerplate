@@ -4,6 +4,7 @@ import {
   ApiBearerAuth,
   ApiConflictResponse,
   ApiOperation,
+  ApiParam,
   ApiResponse,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
@@ -153,6 +154,29 @@ export function ApiRevokeAllSessions() {
       description: SYS_MESSAGES.SESSIONS_REVOKED,
     }),
     ApiUnauthorizedResponse({ description: SYS_MESSAGES.UNAUTHORIZED }),
+  );
+}
+
+export function ApiRevokeSession() {
+  return applyDecorators(
+    ApiBearerAuth(),
+    ApiOperation({
+      summary: 'Revoke a specific active session',
+      description: SYS_MESSAGES.SESSION_REVOKED,
+    }),
+    ApiParam({
+      name: 'id',
+      description: 'The unique ID of the session to revoke',
+      example: 'a1b2c3d4-e5f6-7890-1234-56789abcdef0',
+    }),
+    ApiResponse({
+      status: 200,
+      description: SYS_MESSAGES.SESSION_REVOKED,
+    }),
+    ApiResponse({
+      status: 401,
+      description: SYS_MESSAGES.UNAUTHORIZED,
+    }),
   );
 }
 

@@ -1,4 +1,5 @@
 import {
+  AuthResponse,
   AuthSessionResponse,
   ClientType,
   EmailRequest,
@@ -26,7 +27,7 @@ class AuthService extends BaseService {
   register(
     data: Omit<RegisterRequest, 'client_id' | 'device_id' | 'metadata'>,
   ) {
-    return this.post<RegisterRequest, AuthSessionResponse>('/register', {
+    return this.post<RegisterRequest, AuthResponse>('/register', {
       ...data,
       client_id: ClientType.WEB,
       device_id: DeviceService.getDeviceId(),
@@ -52,7 +53,7 @@ class AuthService extends BaseService {
   }
 
   refresh() {
-    return this.post<RefreshRequest, { tokens: AuthSessionResponse['tokens'] }>(
+    return this.post<RefreshRequest, { tokens: AuthResponse['tokens'] }>(
       '/refresh',
       {
         client_id: ClientType.WEB,
@@ -78,12 +79,20 @@ class AuthService extends BaseService {
   }
 
   getSessions(filters?: SessionFilters) {
-    return this.get<unknown>('/sessions', { params: filters });
+    return this.get<{ sessions: AuthSessionResponse[] }>('/sessions', {
+      params: filters,
+    });
   }
 
   revokeAllSessions() {
     // TODO: pass device_id to log which device triggered the global revocation
     return this.delete<void>('/sessions');
+  }
+
+  // Add this below your revokeAllSessions method
+  revokeSession(sessionId: string) {
+    // TODO: pass device_id to log which device triggered the global revocation
+    return this.delete<void>(`/sessions/${sessionId}`);
   }
 
   authenticate2fa(
@@ -92,7 +101,7 @@ class AuthService extends BaseService {
       'client_id' | 'device_id' | 'metadata'
     >,
   ) {
-    return this.post<TwoFactorAuthenticationRequest, AuthSessionResponse>(
+    return this.post<TwoFactorAuthenticationRequest, AuthResponse>(
       '/2fa/authenticate',
       {
         ...data,
@@ -135,7 +144,7 @@ class AuthService extends BaseService {
   authenticateWithRecoveryCode(
     data: Omit<RecoveryCodeRequest, 'client_id' | 'device_id' | 'metadata'>,
   ) {
-    return this.post<RecoveryCodeRequest, AuthSessionResponse>('/2fa/recover', {
+    return this.post<RecoveryCodeRequest, AuthResponse>('/2fa/recover', {
       ...data,
       client_id: ClientType.WEB,
       device_id: DeviceService.getDeviceId(),

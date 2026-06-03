@@ -73,7 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handleLogout = () => {
       if (!isAuthRoute()) {
-        router.replace('/login?expired=true');
+        router.replace(
+          `/login?expired=true&callbackUrl=${encodeURIComponent(pathname)}`,
+        );
       }
     };
 

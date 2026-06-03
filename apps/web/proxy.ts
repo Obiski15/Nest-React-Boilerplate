@@ -3,28 +3,24 @@ import { NextResponse } from 'next/server';
 
 import { AUTH_ROUTES } from './constants';
 
-export default function proxy(request: NextRequest) {
-  const { pathname, searchParams } = request.nextUrl;
+export default function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
-  // Check for refresh token cookie
+  if (pathname === '/') {
+    return NextResponse.next();
+  }
+
   const hasRefreshToken = request.cookies.has('refresh_token');
 
   const isAuthRoute = AUTH_ROUTES.some((route) => pathname.startsWith(route));
 
   if (!isAuthRoute && !hasRefreshToken) {
     const url = new URL('/login', request.url);
-    searchParams.forEach((value, key) => {
-      url.searchParams.set(key, value);
-    });
     url.searchParams.set('callbackUrl', pathname);
+
     return NextResponse.redirect(url);
   }
 
-  if (!!isAuthRoute && hasRefreshToken) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
-
-  // Allow all other requests to proceed normally
   return NextResponse.next();
 }
 

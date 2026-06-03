@@ -58,6 +58,7 @@ export function RegisterForm() {
       description="Enter your details to get started"
       backButtonLabel="Already have an account?"
       backButtonHref="/login"
+      showSocial={true}
     >
       <form
         onSubmit={(e) => void form.handleSubmit(onSubmit)(e)}

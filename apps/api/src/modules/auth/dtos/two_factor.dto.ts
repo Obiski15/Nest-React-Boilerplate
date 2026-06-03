@@ -10,6 +10,7 @@ import {
 
 import {
   ClientType,
+  DeviceMetadata,
   RecoveryCodeRequest,
   TwoFactorAuthenticationRequest,
   TwoFactorVerificationRequest,
@@ -58,7 +59,7 @@ export class LoginWith2faDto
   })
   @IsObject()
   @IsOptional()
-  metadata?: Record<string, any>;
+  metadata?: DeviceMetadata;
 }
 
 export class LoginWithRecoveryCodeDto implements RecoveryCodeRequest {
@@ -97,5 +98,5 @@ export class LoginWithRecoveryCodeDto implements RecoveryCodeRequest {
   })
   @IsObject()
   @IsOptional()
-  metadata?: Record<string, any>;
+  metadata?: DeviceMetadata;
 }

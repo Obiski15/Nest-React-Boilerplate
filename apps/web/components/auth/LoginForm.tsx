@@ -84,6 +84,7 @@ function LoginFormContent() {
       description="Sign in to your account to continue"
       backButtonLabel="Don't have an account?"
       backButtonHref="/register"
+      showSocial={true}
     >
       <form
         onSubmit={(e) => void form.handleSubmit(onSubmit)(e)}

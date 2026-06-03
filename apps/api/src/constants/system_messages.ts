@@ -42,6 +42,7 @@ export const PASSWORD_RESET_SUCCESS =
   'Password updated successfully. You can now log in.';
 export const SESSIONS_RETRIEVED = 'Active devices loaded.';
 export const SESSIONS_REVOKED = "You've been signed out of all other devices.";
+export const SESSION_REVOKED = 'This device has been signed out.';
 export const LOGIN_SESSION_EXPIRED =
   'Your login session expired. Please sign in again.';
 

@@ -15,7 +15,7 @@ import * as bcrypt from 'bcrypt';
 import { Queue } from 'bullmq';
 import { DataSource, EntityManager } from 'typeorm';
 
-import type { AuthJwtPayload } from '@app/types';
+import type { AuthJwtPayload, DeviceMetadata } from '@app/types';
 
 import { BlacklistService } from '../../../common/blacklist/services/blacklist.service';
 import { EncryptionService } from '../../../common/encryption/services/encryption.service';
@@ -60,7 +60,7 @@ export class AuthService {
   async register(
     userData: RegisterDto,
     device_id: string,
-    metadata?: Record<string, any>,
+    metadata?: DeviceMetadata,
   ) {
     const existingUser = await this.userService.getByEmail({
       validateStatus: false,
@@ -152,7 +152,7 @@ export class AuthService {
   async login(
     loginData: LoginDto,
     device_id: string,
-    metadata?: Record<string, any>,
+    metadata?: DeviceMetadata,
   ) {
     try {
       const user = await this.userService.getByEmail({
@@ -251,7 +251,7 @@ export class AuthService {
     temp_token: string,
     code: string,
     device_id: string,
-    metadata?: Record<string, any>,
+    metadata?: DeviceMetadata,
   ) {
     let payload: AuthJwtPayload;
 
@@ -307,7 +307,7 @@ export class AuthService {
     temp_token: string,
     recoveryCode: string,
     device_id: string,
-    metadata?: Record<string, any>,
+    metadata?: DeviceMetadata,
   ) {
     let payload: AuthJwtPayload;
     try {
@@ -509,17 +509,15 @@ export class AuthService {
   }
 
   async resetPassword(dto: ResetPasswordDto) {
-    await this.validateAndDeleteToken(dto.token, TokenType.PASSWORD_RESET);
+    const user = await this.validateAndDeleteToken(
+      dto.token,
+      TokenType.PASSWORD_RESET,
+    );
 
     const salt_rounds = this.configService.getOrThrow<number>(
       'AUTH.BCRYPT_SALT_ROUNDS',
     );
     const hashedPassword = await bcrypt.hash(dto.new_password, salt_rounds);
-
-    const user = await this.validateAndDeleteToken(
-      dto.token,
-      TokenType.PASSWORD_RESET,
-    );
 
     await this.dataSource.transaction(async (manager) => {
       await this.userService.update(
@@ -540,7 +538,7 @@ export class AuthService {
   private async sessionManagementWithTokenGeneration(
     user: UserEntity,
     device_id: string,
-    metadata?: Record<string, any>,
+    metadata?: DeviceMetadata,
   ) {
     const sessions = await this.authSessionsService.findAll(user.id);
     const sessionLimit =

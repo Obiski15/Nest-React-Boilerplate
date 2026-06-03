@@ -11,6 +11,7 @@ import {
 
 import {
   ClientType,
+  DeviceMetadata,
   EmailRequest,
   LoginRequest,
   LogoutRequest,
@@ -45,7 +46,7 @@ export class RegisterDto extends CreateUserDto implements RegisterRequest {
   })
   @IsObject()
   @IsOptional()
-  metadata?: Record<string, any>;
+  metadata?: DeviceMetadata;
 }
 
 export class LoginDto implements LoginRequest {
@@ -87,7 +88,7 @@ export class LoginDto implements LoginRequest {
   })
   @IsObject()
   @IsOptional()
-  metadata?: Record<string, any>;
+  metadata?: DeviceMetadata;
 }
 
 export class RefreshTokenDto implements RefreshRequest {

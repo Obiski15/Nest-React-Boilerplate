@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   HttpException,
+  Param,
   Post,
   Query,
   Req,
@@ -35,6 +36,7 @@ import {
   ApiResendVerification,
   ApiResetPassword,
   ApiRevokeAllSessions,
+  ApiRevokeSession,
   ApiTurnOn2fa,
   ApiVerifyEmail,
 } from '../docs/auth.docs';
@@ -235,6 +237,16 @@ export class AuthController {
   @ResponseMessage(SYS_MESSAGES.SESSIONS_REVOKED)
   async revokeAllSessions(@Req() req: IAuthenticatedRequest) {
     await this.authSessionsService.deleteAll(req.user.sub);
+  }
+
+  @ApiRevokeSession()
+  @Delete('sessions/:id')
+  @ResponseMessage(SYS_MESSAGES.SESSION_REVOKED)
+  async revokeSession(
+    @Req() req: IAuthenticatedRequest,
+    @Param('id') session_id: string,
+  ) {
+    await this.authSessionsService.delete(session_id, req.user.sub);
   }
 
   // 2FA ROUTES

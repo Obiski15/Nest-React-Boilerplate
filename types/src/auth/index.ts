@@ -6,13 +6,19 @@ export type TokenPair = {
   refresh_token?: string;
 };
 
+export type DeviceMetadata = {
+  userAgent: string;
+  language: string;
+  timeZone: string;
+};
+
 export type AuthChallengeResponse = {
   requires_2fa: true;
   temp_token: string;
   message: string;
 };
 
-export type AuthSessionResponse = {
+export type AuthResponse = {
   tokens: TokenPair;
   user?: UserRecord;
 };
@@ -22,7 +28,7 @@ export type LoginRequest = {
   password: string;
   client_id: ClientType;
   device_id: string;
-  metadata?: Record<string, unknown>;
+  metadata?: DeviceMetadata;
 };
 
 export type RegisterRequest = {
@@ -31,7 +37,7 @@ export type RegisterRequest = {
   password: string;
   client_id: ClientType;
   device_id: string;
-  metadata?: Record<string, unknown>;
+  metadata?: DeviceMetadata;
 };
 
 export type EmailRequest = {
@@ -71,14 +77,22 @@ export interface TwoFactorVerificationRequest {
 export interface TwoFactorAuthenticationRequest extends TwoFactorVerificationRequest {
   temp_token: string;
   device_id: string;
-  metadata?: Record<string, unknown>;
+  metadata?: DeviceMetadata;
 }
 
 export interface RecoveryCodeRequest extends TokenRequest {
   recovery_code: string;
   client_id: ClientType;
   device_id: string;
-  metadata?: Record<string, unknown>;
+  metadata?: DeviceMetadata;
+}
+
+export interface AuthSessionResponse {
+  id: string;
+  createdAt: string;
+  user: UserRecord;
+  device_id: string;
+  metadata?: DeviceMetadata;
 }
 
 export type SessionFilters = {
@@ -89,4 +103,4 @@ export type SessionFilters = {
   createdAfter?: string | Date;
 };
 
-export type UnifiedLoginResponse = AuthSessionResponse | AuthChallengeResponse;
+export type UnifiedLoginResponse = AuthResponse | AuthChallengeResponse;

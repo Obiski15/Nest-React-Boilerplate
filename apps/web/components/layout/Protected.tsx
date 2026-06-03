@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import {
   Command,
   LayoutDashboard,
@@ -41,19 +41,12 @@ export function Protected({ children }: ProtectedWrapperProps) {
   const { user, isLoading, isAuthenticated, isInitialized, logout } = useAuth();
   const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (isInitialized && !isAuthenticated) {
-      router.replace(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
-    }
-  }, [isInitialized, isAuthenticated, pathname, router]);
-
-  if (!isMounted || isLoading || !isInitialized) {
+  if (!isMounted || isLoading || !isAuthenticated || !isInitialized) {
     return (
       <div className="bg-background flex h-screen w-full items-center justify-center">
         <div className="flex flex-col items-center gap-4">

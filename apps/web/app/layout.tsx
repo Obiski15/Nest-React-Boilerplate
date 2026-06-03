@@ -39,7 +39,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="app-shell flex min-h-full flex-col">
-        <ThemeProvider defaultTheme="system" enableSystem>
+        <ThemeProvider defaultTheme="light">
           <Providers>
             <Toaster />
             {children}

@@ -23,6 +23,7 @@ import config from './config';
 import { THROTTLE_OPTIONS } from './constants';
 import { AuthModule } from './modules/auth/auth.module';
 import { AuthGuard } from './modules/auth/guards/auth.guard';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -114,6 +115,7 @@ import { AuthGuard } from './modules/auth/guards/auth.guard';
     EncryptionModule,
     BlacklistModule,
     LoggerModule,
+    HealthModule,
     RetryModule,
     MailModule,
     AuthModule,

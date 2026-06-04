@@ -5,6 +5,7 @@ import { Laptop, Loader2, MonitorSmartphone, ShieldAlert } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+import { parseUserAgent } from '@app/helpers';
 import { AuthSessionResponse } from '@app/types';
 import { authService } from '@/app/api/services/auth.service';
 import { DeviceService } from '@/app/api/services/device.service';
@@ -74,15 +75,6 @@ export function ActiveSessionsCard() {
       toast.error((error as Error).message);
       setIsRevoking(false);
     }
-  };
-
-  const parseUserAgent = (userAgent?: string) => {
-    if (!userAgent) return 'Unknown Device';
-    if (userAgent.includes('Windows')) return 'Windows PC';
-    if (userAgent.includes('Mac')) return 'MacBook / iMac';
-    if (userAgent.includes('iPhone')) return 'iPhone';
-    if (userAgent.includes('Android')) return 'Android Device';
-    return 'Web Browser';
   };
 
   return (

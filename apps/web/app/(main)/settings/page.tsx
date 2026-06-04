@@ -1,4 +1,5 @@
 import { ActiveSessionsCard } from '@/components/settings/ActiveSessionsCard';
+import { NotificationPreferencesCard } from '@/components/settings/NotificationPreferenceCard';
 import { TwoFactorSettingsCard } from '@/components/settings/TwoFactorSettingsCard';
 
 export default function SecuritySettingsPage() {
@@ -14,6 +15,8 @@ export default function SecuritySettingsPage() {
       <TwoFactorSettingsCard />
 
       <ActiveSessionsCard />
+
+      <NotificationPreferencesCard />
     </div>
   );
 }

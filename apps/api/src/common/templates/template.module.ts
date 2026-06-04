@@ -1,7 +1,8 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 
 import { TemplateService } from './services/template.service';
 
+@Global()
 @Module({
   providers: [TemplateService],
   exports: [TemplateService],

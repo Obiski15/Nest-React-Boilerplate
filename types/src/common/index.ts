@@ -1,4 +1,4 @@
-import { UserRole } from '../enums';
+import { SortOrder, UserRole } from '../enums';
 
 export type AuthJwtPayload = {
   sub: string;
@@ -28,6 +28,13 @@ export type ErrorResponse = {
     message: string | string[];
   };
 };
+
+export interface BaseFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  sortOrder?: SortOrder;
+}
 
 export type PageMetaInput = {
   total: number;

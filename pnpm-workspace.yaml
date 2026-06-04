@@ -1,6 +1,7 @@
 packages:
   - 'apps/*'
   - 'types'
+  - 'helpers'
 
 ignoredBuiltDependencies:
   - sharp

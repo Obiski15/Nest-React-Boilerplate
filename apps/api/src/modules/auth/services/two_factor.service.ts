@@ -4,22 +4,37 @@ import { ConfigService } from '@nestjs/config';
 import { authenticator } from '@otplib/preset-default';
 import * as qrcode from 'qrcode';
 
+import { NotificationChannel } from '@app/types';
+
 import { EncryptionService } from '../../../common/encryption/services/encryption.service';
 import { AppLogger } from '../../../common/logger/logger.service';
+import { TEMPLATE_NAMES } from '../../../common/templates/enums/templates.enum';
+import { TemplateService } from '../../../common/templates/services/template.service';
 import { LOG_EVENTS } from '../../../constants/log_events';
 import { LOG_MESSAGES } from '../../../constants/log_messages';
 import * as SYS_MESSAGES from '../../../constants/system_messages';
+import {
+  NotificationEventType,
+  NotificationTitle,
+} from '../../notification/enums/notification.enum';
+import { NotificationService } from '../../notification/services/notification.service';
 import { UserEntity } from '../../user/entities/user.entity';
 import { UserService } from '../../user/services/user.service';
 
 @Injectable()
 export class TwoFactorService {
+  private readonly frontend_url: string;
+
   constructor(
+    private readonly notificationService: NotificationService,
     private readonly encryptionService: EncryptionService,
+    private readonly templateService: TemplateService,
     private readonly configService: ConfigService,
     private readonly userService: UserService,
     private readonly logger: AppLogger,
   ) {
+    this.frontend_url =
+      this.configService.getOrThrow<string>('APP.FRONTEND_URL');
     this.logger.setContext(TwoFactorService.name);
   }
 
@@ -96,6 +111,22 @@ export class TwoFactorService {
       two_factor_recovery_codes: hashedCodes,
     });
 
+    const template = this.templateService.render(
+      TEMPLATE_NAMES.TWO_FACTOR_ENABLED,
+      {
+        user: { name: user.name, email: user.email },
+        action_url: this.frontend_url,
+      },
+    );
+
+    await this.notificationService.dispatch({
+      event_type: NotificationEventType.TWO_FACTOR_ENABLED,
+      title: NotificationTitle.TWO_FACTOR_ENABLED,
+      override_channels: [NotificationChannel.EMAIL],
+      user_id: user.id,
+      message: template,
+    });
+
     this.logger.audit(LOG_MESSAGES.AUTH.TWO_FACTOR_ENABLED(user.id), {
       event: LOG_EVENTS.AUTH_2FA_ENABLED,
     });
@@ -121,6 +152,24 @@ export class TwoFactorService {
     await this.userService.update(userId, {
       is_two_factor_enabled: false,
       two_factor_secret: null,
+    });
+
+    const user = await this.userService.getById({ id: userId });
+
+    const template = this.templateService.render(
+      TEMPLATE_NAMES.TWO_FACTOR_DISABLED,
+      {
+        user: { name: user.name, email: user.email },
+        action_url: `${this.frontend_url}/settings`,
+      },
+    );
+
+    await this.notificationService.dispatch({
+      event_type: NotificationEventType.TWO_FACTOR_DISABLED,
+      override_channels: [NotificationChannel.EMAIL],
+      title: NotificationTitle.TWO_FACTOR_DISABLED,
+      user_id: user.id,
+      message: template,
     });
 
     this.logger.audit(LOG_MESSAGES.AUTH.TWO_FACTOR_DISABLED(userId), {

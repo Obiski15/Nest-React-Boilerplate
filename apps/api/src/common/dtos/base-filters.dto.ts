@@ -2,9 +2,9 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
-import { SortOrder } from '@app/types';
+import { BaseFilters, SortOrder } from '@app/types';
 
-export class BaseFiltersDto {
+export class BaseFiltersDto implements BaseFilters {
   @ApiPropertyOptional({
     description: 'The page number for pagination',
     minimum: 1,

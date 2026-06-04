@@ -27,13 +27,6 @@ export class UserEntity extends BaseEntity {
   @Column({ type: 'boolean', default: true })
   is_active: boolean;
 
-  @Exclude()
-  @DeleteDateColumn({
-    type: 'timestamp with time zone',
-    nullable: true,
-  })
-  deletedAt: Date;
-
   @Column({ type: 'boolean', default: false })
   is_two_factor_enabled: boolean;
 
@@ -44,4 +37,14 @@ export class UserEntity extends BaseEntity {
   @Exclude()
   @Column({ type: 'text', array: true, default: [], select: false })
   two_factor_recovery_codes: string[];
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  phone_number: string | null;
+
+  @Exclude()
+  @DeleteDateColumn({
+    type: 'timestamp with time zone',
+    nullable: true,
+  })
+  deletedAt: Date;
 }

@@ -1,4 +1,5 @@
-import { SortOrder, UserRole } from '../enums';
+import { BaseFilters } from '../common';
+import { UserRole } from '../enums';
 
 export type UserRecord = {
   id: string;
@@ -12,16 +13,12 @@ export type UserRecord = {
   updated_at: string | Date;
 };
 
-export type UserFilters = {
-  page?: number;
-  limit?: number;
-  search?: string;
+export interface UserFilters extends BaseFilters {
   sortBy?: keyof UserRecord;
-  sortOrder?: SortOrder;
   role?: UserRole;
   is_active?: boolean;
   is_email_verified?: boolean;
-};
+}
 
 export type UpdateUserRequest = {
   name?: string;

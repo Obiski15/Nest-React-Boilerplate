@@ -1,5 +1,4 @@
 import * as crypto from 'crypto';
-import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,
   ConflictException,
@@ -12,25 +11,25 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { Queue } from 'bullmq';
 import { DataSource, EntityManager } from 'typeorm';
 
+import { parseUserAgent } from '@app/helpers';
 import type { AuthJwtPayload, DeviceMetadata } from '@app/types';
+import { NotificationChannel } from '@app/types';
 
 import { BlacklistService } from '../../../common/blacklist/services/blacklist.service';
 import { EncryptionService } from '../../../common/encryption/services/encryption.service';
 import { AppLogger } from '../../../common/logger/logger.service';
-import {
-  MAIL_QUEUE_NAME,
-  MailJobName,
-} from '../../../common/mail/enums/mail-job.enum';
-import {
-  IAuthTokenContext,
-  IMailJob,
-} from '../../../common/mail/interfaces/mail-job.interface';
+import { TEMPLATE_NAMES } from '../../../common/templates/enums/templates.enum';
+import { TemplateService } from '../../../common/templates/services/template.service';
 import { LOG_EVENTS } from '../../../constants/log_events';
 import { LOG_MESSAGES } from '../../../constants/log_messages';
 import * as SYS_MESSAGES from '../../../constants/system_messages';
+import {
+  NotificationEventType,
+  NotificationTitle,
+} from '../../notification/enums/notification.enum';
+import { NotificationService } from '../../notification/services/notification.service';
 import { UserEntity } from '../../user/entities/user.entity';
 import { UserService } from '../../user/services/user.service';
 import { LoginDto, RegisterDto, ResetPasswordDto } from '../dtos/auth.dto';
@@ -41,19 +40,24 @@ import { TwoFactorService } from './two_factor.service';
 
 @Injectable()
 export class AuthService {
+  private readonly frontend_url: string;
+
   constructor(
-    @InjectQueue(MAIL_QUEUE_NAME) private readonly mailQueue: Queue,
+    private readonly notificationService: NotificationService,
     private readonly authSessionsService: AuthSessionsService,
     private readonly authTokenRepository: AuthTokenRepository,
     private readonly encryptionService: EncryptionService,
     private readonly twoFactorService: TwoFactorService,
     private readonly blacklistService: BlacklistService,
+    private readonly templateService: TemplateService,
     private readonly configService: ConfigService,
     private readonly userService: UserService,
     private readonly dataSource: DataSource,
     private readonly jwtService: JwtService,
     private readonly logger: AppLogger,
   ) {
+    this.frontend_url =
+      this.configService.getOrThrow<string>('APP.FRONTEND_URL');
     this.logger.setContext(AuthService.name);
   }
 
@@ -101,21 +105,18 @@ export class AuthService {
           manager,
         );
 
-        const WelcomeEmailJobPayload: IMailJob = {
-          user: {
-            name: newUser.name,
-            email: newUser.email,
-          },
-          context: {},
-        };
+        const message = this.templateService.render(TEMPLATE_NAMES.WELCOME, {
+          user: { name: newUser.name, email: newUser.email },
+          action_url: this.frontend_url,
+        });
 
-        await this.mailQueue.add(
-          MailJobName.SEND_WELCOME,
-          WelcomeEmailJobPayload,
-          {
-            jobId: `welcome-${newUser.id}-${Date.now()}`,
-          },
-        );
+        await this.notificationService.dispatch({
+          event_type: NotificationEventType.WELCOME_MESSAGE,
+          override_channels: [NotificationChannel.EMAIL],
+          title: NotificationTitle.WELCOME_MESSAGE,
+          user_id: newUser.id,
+          message,
+        });
 
         await this.generateAndSendToken(
           newUser,
@@ -528,13 +529,28 @@ export class AuthService {
       await this.authSessionsService.deleteAll(user.id, manager);
     });
 
+    const template = this.templateService.render(
+      TEMPLATE_NAMES.PASSWORD_CHANGE,
+      {
+        user: { name: user.name, email: user.email },
+        action_url: this.frontend_url,
+      },
+    );
+
+    await this.notificationService.dispatch({
+      event_type: NotificationEventType.PASSWORD_CHANGE,
+      override_channels: [NotificationChannel.EMAIL],
+      title: NotificationTitle.PASSWORD_CHANGE,
+      user_id: user.id,
+      message: template,
+    });
+
     this.logger.audit(LOG_MESSAGES.AUTH.PASSWORD_RESET(user.id), {
       event: LOG_EVENTS.AUTH_PASSWORD_RESET,
     });
   }
 
   // PRIVATE METHODS
-
   private async sessionManagementWithTokenGeneration(
     user: UserEntity,
     device_id: string,
@@ -571,6 +587,31 @@ export class AuthService {
       device_id,
       metadata,
     );
+
+    if (!isKnownDevice) {
+      const message = this.templateService.render(
+        TEMPLATE_NAMES.NEW_DEVICE_LOGIN,
+        {
+          user: { name: user.name, email: user.email },
+          action_url: `${this.frontend_url}/settings`,
+          context: {
+            device: parseUserAgent(metadata?.userAgent),
+            location: metadata?.timeZone,
+            time: new Date().toLocaleString('en-US', {
+              timeZone: metadata?.timeZone || 'UTC',
+            }),
+          },
+        },
+      );
+
+      await this.notificationService.dispatch({
+        event_type: NotificationEventType.LOGIN_ALERT,
+        override_channels: [NotificationChannel.EMAIL],
+        title: NotificationTitle.LOGIN_ALERT,
+        user_id: user.id,
+        message,
+      });
+    }
 
     this.logger.audit(LOG_MESSAGES.AUTH.LOGIN_SUCCESS(user.id), {
       email: user.email,
@@ -653,18 +694,39 @@ export class AuthService {
       manager,
     );
 
-    const jobPayload: IMailJob<IAuthTokenContext> = {
-      user: { name: user.name, email: user.email },
-      context: { rawToken },
-    };
+    let template: string;
+    let title: NotificationTitle;
 
     if (type === TokenType.EMAIL_VERIFICATION) {
-      await this.mailQueue.add(MailJobName.SEND_VERIFICATION, jobPayload, {
-        jobId: `verification-${user.id}-${Date.now()}`,
+      template = this.templateService.render(
+        TEMPLATE_NAMES.ACCOUNT_VERIFICATION,
+        {
+          user: { name: user.name, email: user.email },
+          action_url: `${this.frontend_url}/verify-email?token=${rawToken}&email=${user.email}`,
+        },
+      );
+      title = NotificationTitle.EMAIL_VERIFICATION;
+
+      await this.notificationService.dispatch({
+        event_type: NotificationEventType.EMAIL_VERIFICATION,
+        override_channels: [NotificationChannel.EMAIL],
+        user_id: user.id,
+        message: template,
+        title,
       });
     } else {
-      await this.mailQueue.add(MailJobName.SEND_PASSWORD_RESET, jobPayload, {
-        jobId: `password-reset-${user.id}-${Date.now()}`,
+      template = this.templateService.render(TEMPLATE_NAMES.PASSWORD_RESET, {
+        user: { name: user.name, email: user.email },
+        action_url: `${this.frontend_url}/reset-password?token=${rawToken}&email=${user.email}`,
+      });
+      title = NotificationTitle.PASSWORD_RESET;
+
+      await this.notificationService.dispatch({
+        event_type: NotificationEventType.PASSWORD_RESET,
+        override_channels: [NotificationChannel.EMAIL],
+        user_id: user.id,
+        message: template,
+        title,
       });
     }
   }

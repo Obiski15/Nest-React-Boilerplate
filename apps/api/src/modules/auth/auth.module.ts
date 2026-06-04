@@ -1,12 +1,11 @@
-import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule, JwtSignOptions } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { BlacklistModule } from '../../common/blacklist/blacklist.module';
-import { MAIL_QUEUE_NAME } from '../../common/mail/enums/mail-job.enum';
 import { MailModule } from '../../common/mail/mail.module';
+import { NotificationModule } from '../notification/notification.module';
 import { UserModule } from '../user/user.module';
 import { AuthController } from './controllers/auth.controller';
 import { AuthSessionsEntity } from './entities/auth_sessions.entity';
@@ -33,9 +32,7 @@ import { TwoFactorService } from './services/two_factor.service';
         },
       }),
     }),
-    BullModule.registerQueue({
-      name: MAIL_QUEUE_NAME,
-    }),
+    NotificationModule,
     BlacklistModule,
     UserModule,
     MailModule,

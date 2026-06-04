@@ -1,3 +1,4 @@
+import { BaseFilters } from '../common';
 import { ClientType } from '../enums';
 import { UserRecord } from '../user';
 
@@ -95,12 +96,8 @@ export interface AuthSessionResponse {
   metadata?: DeviceMetadata;
 }
 
-export type SessionFilters = {
-  page?: number;
-  limit?: number;
-  search?: string;
-  sortOrder?: 'ASC' | 'DESC';
+export interface SessionFilters extends BaseFilters {
   createdAfter?: string | Date;
-};
+}
 
 export type UnifiedLoginResponse = AuthResponse | AuthChallengeResponse;

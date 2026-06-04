@@ -7,6 +7,16 @@ export const LOG_MESSAGES = {
     ERROR: 'Application startup failure',
   },
 
+  WS: {
+    CONNECTION: (client_id: string) => `Client connected: ${client_id}`,
+    USER_CONNECTION: (user_id: string) =>
+      `User ${user_id} connected to monitoring`,
+    DISCONNECTION: (client_id: string) => `Client disconnected: ${client_id}`,
+    JOIN_ROOM: (client_id: string, room_id: string) =>
+      `Client ${client_id} joined room: ${room_id}`,
+    AUTH_ERROR: (reason: string) => `WebSocket authentication error: ${reason}`,
+  },
+
   HTTP: {
     REQUEST_IN: (method: string, url: string) => `→ ${method} ${url}`,
     RESPONSE_OUT: (
@@ -28,6 +38,19 @@ export const LOG_MESSAGES = {
       `Retry attempt ${attempt} failed for operation: ${operation}`,
     EXHAUSTED: (retries: number, operation: string) =>
       `All ${retries} retry attempts exhausted for operation: ${operation}`,
+  },
+
+  NOTIFICATION: {
+    DISPATCHED: (eventType: string, userId: string) =>
+      `Notification [${eventType}] dispatched to User [${userId}]`,
+    DISPATCH_FAILED: (userId: string) =>
+      `Failed to dispatch notification to User [${userId}]`,
+  },
+
+  MAIL: {
+    PROCESSING: (to: string) => `Processing email job for ${to}`,
+    SENT: (to: string) => `Email sent to ${to}`,
+    FAILED: (to: string) => `Failed to send email to ${to}`,
   },
 
   ENCRYPTION: {
@@ -119,26 +142,5 @@ export const LOG_MESSAGES = {
       `Failed attempt to use 2FA recovery code for user: [${userId}]`,
     TWO_FACTOR_RECOVERY_USED: (userId: string) =>
       `2FA recovery code successfully used for user: [${userId}]`,
-  },
-
-  MAIL: {
-    WELCOME_EMAIL_SENT: (email: string) => `Welcome email sent to ${email}`,
-    VERIFICATION_EMAIL_SENT: (email: string, verificationLink: string) =>
-      `Email Verification link sent to ${email}: ${verificationLink}`,
-    PASSWORD_RESET_EMAIL_SENT: (email: string, resetLink: string) =>
-      `Password reset link sent to ${email}: ${resetLink}`,
-    FAILED: 'Failed to send email',
-  },
-
-  BACKGROUND_JOBS: {
-    UNKNOWN_JOB_NAME: (jobName: string) =>
-      `Received job with unknown name: [${jobName}]`,
-    BACKGROUND_JOB_FAILED: (
-      jobName: string,
-      jobId: string,
-      attemptsMade: number,
-      attemptsTotal: number,
-    ) =>
-      `Background job failed: [${jobName}] (ID: ${jobId}). Attempt ${attemptsMade}/${attemptsTotal}`,
   },
 } as const;

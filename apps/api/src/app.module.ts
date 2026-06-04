@@ -3,6 +3,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import KeyvRedis from '@keyv/redis';
@@ -19,11 +20,13 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { LoggerModule } from './common/logger/logger.module';
 import { MailModule } from './common/mail/mail.module';
 import { RetryModule } from './common/retry/retry.module';
+import { TemplateModule } from './common/templates/template.module';
 import config from './config';
 import { THROTTLE_OPTIONS } from './constants';
 import { AuthModule } from './modules/auth/auth.module';
 import { AuthGuard } from './modules/auth/guards/auth.guard';
 import { HealthModule } from './modules/health/health.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -51,6 +54,11 @@ import { HealthModule } from './modules/health/health.module';
       }),
 
       inject: [ConfigService],
+    }),
+
+    EventEmitterModule.forRoot({
+      wildcard: true,
+      delimiter: '.',
     }),
 
     BullModule.forRootAsync({
@@ -112,8 +120,11 @@ import { HealthModule } from './modules/health/health.module';
         };
       },
     }),
+
+    NotificationModule,
     EncryptionModule,
     BlacklistModule,
+    TemplateModule,
     LoggerModule,
     HealthModule,
     RetryModule,

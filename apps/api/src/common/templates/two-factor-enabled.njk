@@ -1,0 +1,21 @@
+{% extends "base.njk" %}
+
+{% block content %}
+<div style="text-align: center; margin-bottom: 24px;">
+  <span style="display: inline-block; border: 1px solid {{ theme.primary }}; color: {{ theme.primary }}; padding: 8px 16px; border-radius: 9999px; font-size: 14px; font-weight: 600;">Security Upgraded</span>
+</div>
+<h2 style="margin: 0 0 20px; font-size: 24px; font-weight: 600; text-align: center; color: {{ theme.text_heading }};">Two-Factor Authentication Enabled</h2>
+<p style="margin: 0 0 16px; color: {{ theme.text }};">
+  Hi {{ user.name | default('there') }},
+</p>
+<p style="margin: 0 0 24px; color: {{ theme.text }};">
+  Two-factor authentication (2FA) has been successfully enabled for your account. This extra layer of security helps protect your data and ensures that only you can access your account, even if someone else gets your password.
+</p>
+<p style="margin: 0 0 24px; color: {{ theme.text }};">
+  The next time you log in, you will be required to enter a verification code from your authenticator device.
+</p>
+<p style="margin: 0; font-size: 14px; color: {{ theme.text_muted }};">
+  Keep building securely,<br>
+  The {{ app.name }} Team
+</p>
+{% endblock %}

@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@app/types": "workspace:*",
+    "@app/helpers": "workspace:*",
     "@bprogress/next": "^3.2.12",
     "@hookform/resolvers": "^5.4.0",
     "class-variance-authority": "^0.7.1",

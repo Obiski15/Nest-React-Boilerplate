@@ -1,0 +1,59 @@
+{% extends "base.njk" %}
+
+{% block content %}
+<h2 style="margin: 0 0 20px; font-size: 24px; font-weight: 600; color: {{ theme.text_heading }};">New Login Detected</h2>
+<p style="margin: 0 0 16px; color: {{ theme.text }};">
+  Hi {{ user.name | default('there') }},
+</p>
+<p style="margin: 0 0 24px; color: {{ theme.text }};">
+  We noticed a recent login to your {{ app.name }} account from an unfamiliar device or location. 
+</p>
+
+<!-- Login Details Block -->
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 24px; background-color: {{ theme.footer_bg }}; border-radius: 6px; padding: 16px;">
+  <tr>
+    <td style="padding-bottom: 8px;">
+      <strong style="color: {{ theme.text_heading }}; font-size: 14px;">Device:</strong> 
+      <span style="color: {{ theme.text }}; font-size: 14px;">{{ context.device | default('Unknown Device') }}</span>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding-bottom: 8px;">
+      <strong style="color: {{ theme.text_heading }}; font-size: 14px;">Location:</strong> 
+      <span style="color: {{ theme.text }}; font-size: 14px;">{{ context.location | default('Unknown Location') }}</span>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding-bottom: 8px;">
+      <strong style="color: {{ theme.text_heading }}; font-size: 14px;">IP Address:</strong> 
+      <span style="color: {{ theme.text }}; font-size: 14px;">{{ context.ipAddress | default('Unknown IP') }}</span>
+    </td>
+  </tr>
+  <tr>
+    <td>
+      <strong style="color: {{ theme.text_heading }}; font-size: 14px;">Time:</strong> 
+      <span style="color: {{ theme.text }}; font-size: 14px;">{{ context.time | default('Just now') }}</span>
+    </td>
+  </tr>
+</table>
+
+<!-- Security Action Box -->
+<div style="background-color: {{ theme.footer_bg }}; border: 1px solid {{ theme.primary }}; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
+  <p style="margin: 0; font-size: 14px; line-height: 20px; color: {{ theme.text_heading }};">
+    <strong>Was this you?</strong><br>
+    If this was you, no further action is needed. If you don't recognize this activity, please secure your account immediately.
+  </p>
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 16px;">
+    <tr>
+      <td>
+        <a href="{{ action_url }}" style="display: inline-block; background-color: {{ theme.primary }}; color: {{ theme.button_text }}; font-size: 14px; font-weight: 600; text-decoration: none; padding: 10px 20px; border-radius: 6px;">Secure My Account</a>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<p style="margin: 0; font-size: 14px; color: {{ theme.text_muted }};">
+  Thanks,<br>
+  The {{ app.name }} Security Team
+</p>
+{% endblock %}

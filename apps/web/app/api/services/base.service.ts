@@ -63,6 +63,15 @@ export default abstract class BaseService {
       apiClient.patch(this.buildUrl(url), data, config),
     );
   }
+  protected put<IRequest, IResponse>(
+    url: string,
+    data?: IRequest,
+    config?: AxiosRequestConfig,
+  ) {
+    return this.handleRequest<IResponse>(
+      apiClient.put(this.buildUrl(url), data, config),
+    );
+  }
 
   protected delete<IResponse>(url: string, config?: AxiosRequestConfig) {
     return this.handleRequest<IResponse>(

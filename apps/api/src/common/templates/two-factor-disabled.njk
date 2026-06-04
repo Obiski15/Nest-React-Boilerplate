@@ -1,0 +1,36 @@
+{% extends "base.njk" %}
+
+{% block content %}
+<div style="text-align: center; margin-bottom: 24px;">
+  <span style="display: inline-block; background-color: {{ theme.primary }}; color: {{ theme.button_text }}; padding: 8px 16px; border-radius: 9999px; font-size: 14px; font-weight: 600;">Security Alert</span>
+</div>
+<h2 style="margin: 0 0 20px; font-size: 24px; font-weight: 600; text-align: center; color: {{ theme.text_heading }};">Two-Factor Authentication Disabled</h2>
+<p style="margin: 0 0 16px; color: {{ theme.text }};">
+  Hi {{ user.name | default('there') }},
+</p>
+<p style="margin: 0 0 24px; color: {{ theme.text }};">
+  Two-factor authentication (2FA) has been turned off for your account. Your account is now protected only by your password.
+</p>
+<p style="margin: 0 0 24px; color: {{ theme.text }};">
+  If you made this change, we highly recommend re-enabling 2FA as soon as possible to keep your workspace data secure.
+</p>
+
+<div style="background-color: {{ theme.footer_bg }}; border: 1px solid {{ theme.primary }}; border-radius: 6px; padding: 16px; margin-bottom: 24px;">
+  <p style="margin: 0; font-size: 14px; line-height: 20px; color: {{ theme.text_heading }};">
+    <strong>Didn't make this change?</strong><br>
+    An unauthorized party may have accessed your account. Please secure it immediately.
+  </p>
+  <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 16px;">
+    <tr>
+      <td>
+        <a href="{{ action_url }}" style="display: inline-block; background-color: {{ theme.primary }}; color: {{ theme.button_text }}; font-size: 14px; font-weight: 600; text-decoration: none; padding: 10px 20px; border-radius: 6px;">Secure My Account</a>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<p style="margin: 0; font-size: 14px; color: {{ theme.text_muted }};">
+  Thanks,<br>
+  The {{ app.name }} Security Team
+</p>
+{% endblock %}

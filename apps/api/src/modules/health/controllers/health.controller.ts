@@ -6,11 +6,14 @@ import {
   MemoryHealthIndicator,
   TypeOrmHealthIndicator,
 } from '@nestjs/terminus';
+import { Throttle } from '@nestjs/throttler';
 
 import { Public } from '../../../common/decorators/public.decorator';
+import { THROTTLE_OPTIONS } from '../../../constants';
 import { ApiHealthCheck } from '../docs/health.docs';
 
 @ApiTags('System')
+@Throttle({ default: THROTTLE_OPTIONS.public })
 @Controller('health')
 export class HealthController {
   constructor(
